@@ -1,541 +1,510 @@
-from collections import deque
-from datetime import datetime
-
-
-# ============================================================
-# DATOS Y ESTRUCTURAS PRINCIPALES
-# ============================================================
-
-salidas = [] # creamos una lista vacía que funcionará como pila LIFO para almacenar las salidas de los buses
-
-pasajeros = deque() # creamos una cola de pasajeros utilizando deque(), que permite agregar y eliminar elementos eficientemente desde ambos extremos
-
-siguiente_turno = 1 # declaramos una variable que funcionará como contador para asignar un número de turno a cada pasajero
-siguiente_salida = 5001 # declaramos una variable que funcionará como contador para asignar un código único a cada salida registrada
-
-
-# ============================================================
-# ÁRBOL DE DESTINOS
-# ============================================================
-
-class NodoDestino:
-    # creamos la clase NodoDestino para representar cada nodo del árbol de destinos
-    def __init__(self, nombre):
-        # inicializamos el nodo y recibimos como parámetro el nombre del destino o región
-        self.nombre = nombre # guardamos el nombre recibido como un atributo del objeto
-        self.hijos = [] # creamos una lista vacía que almacenará los nodos hijos relacionados con este nodo
-
-
-# creamos el nodo raíz del árbol, que representa la Terminal Central
-raiz = NodoDestino("Terminal Central")
-
-# creamos los nodos que representan las tres regiones principales
-zona_oriental = NodoDestino("Zona Oriental")
-zona_central = NodoDestino("Zona Central")
-zona_occidental = NodoDestino("Zona Occidental")
-
-# agregamos las tres regiones a la lista de hijos del nodo raíz
-# extend() permite agregar varios elementos a una lista en una sola operación
-# de esta manera, las tres regiones quedan conectadas directamente con la Terminal Central
-raiz.hijos.extend([
-    zona_oriental,
-    zona_central,
-    zona_occidental
-])
-
-# agregamos los destinos que pertenecen a la Zona Oriental
-# cada destino se crea como un objeto NodoDestino y se incorpora a la lista de hijos de esa región
-zona_oriental.hijos.extend([
-    NodoDestino("San Miguel"),
-    NodoDestino("La Unión"),
-    NodoDestino("Usulután")
-])
-
-# agregamos los destinos que pertenecen a la Zona Central
-zona_central.hijos.extend([
-    NodoDestino("San Salvador"),
-    NodoDestino("La Libertad")
-])
-
-# agregamos los destinos que pertenecen a la Zona Occidental
-zona_occidental.hijos.extend([
-    NodoDestino("Santa Ana"),
-    NodoDestino("Ahuachapán")
-])
-
-
-# ============================================================
-# FUNCIONES AUXILIARES
-# ============================================================
-
-def solicitar_texto(mensaje):
-    # utilizamos un ciclo while True para seguir solicitando información hasta recibir un texto válido
-    while True:
-        # mostramos el mensaje recibido como parámetro y almacenamos lo que ingrese el usuario
-        # strip() elimina los espacios en blanco que se encuentren al principio y al final del texto
-        texto = input(mensaje).strip()
-
-        # comprobamos si el texto contiene algún carácter después de eliminar los espacios
-        # si no está vacío, devolvemos el texto y finalizamos la función con return
-        if texto:
-            return texto
-
-        # si el texto está vacío, mostramos un mensaje de error y el ciclo vuelve a solicitar el dato
-        print("Error: el dato no puede estar vacío.")
-
-
-def mostrar_salida(salida):
-    # recibimos como parámetro un diccionario que contiene los datos de una salida registrada
-    # utilizamos las claves del diccionario para acceder a los valores correspondientes y mostrarlos en pantalla
-    print(f"Código de salida: {salida['codigo']}") # mostramos el código asignado a la salida
-    print(f"Código del bus: {salida['bus']}") # mostramos el código del bus registrado
-    print(f"Destino: {salida['destino']}") # mostramos el destino al que viajará el bus
-    print(f"Fecha y hora: {salida['fecha_hora']}") # mostramos la fecha y hora en que se registró la salida
-
-
-def es_destino_final(nodo):
-    # un destino final es un nodo que existe y que no es la terminal ni una de sus regiones
-    # las regiones son los hijos directos de la raíz, por eso las descartamos con raiz.hijos
-    # centralizamos esta regla aquí para que todas las funciones validen los destinos de la misma forma
-    return nodo is not None and nodo is not raiz and nodo not in raiz.hijos
-
-
-# ============================================================
-# PILA LIFO: SALIDAS DE BUSES
-# ============================================================
-
-def registrar_salida():
-    global siguiente_salida # accedemos a la variable que declaramos fuera de la función
-
-    bus = solicitar_texto("Código del bus: ") # esta función es un input pero con filtros que solucita en termina el código de un bus
-
-# usamos un la función any para devolver true si algún elemento cumple con la condición
-#luego hacemos la codición que compara el código del bus con las lista de codigos de buses por salir
-# si encuetra uno hace un print con un mensaje y luego un return
-    if any(salida["bus"].casefold() == bus.casefold() 
-            for salida in salidas):
-        print("Error: ya existe una salida registrada con ese código de bus.")
-        return
-
-# en caso no encuentre uno solcitamos los demas datos de bus
-    destino = solicitar_texto("Destino del bus: ")
-    nodo = buscar_destino(raiz, destino)
-
-# si el destino no existe o es la terminal o una región
-# imprime un error porque no es un destino final
-    if not es_destino_final(nodo):
-        print("Error: el destino no existe o no es un destino final.")
-        return
-
-# en caso de que no crea una variable llamada salida con los datos del bus
-    salida = {
-        "codigo": siguiente_salida,
-        "bus": bus,
-        "destino": nodo.nombre,
-        "fecha_hora": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    }
-
-# agrega la salida a la lista de salidas en la cosición de la derecha
-    salidas.append(salida)
-# aumenta el contador de siguiete_salida
-    siguiente_salida += 1
-
-# print de confimarción
-    print("\nSalida registrada correctamente.")
-# con esta función mostramos los datos de la salida registrada
-    mostrar_salida(salida)
-
-
-def deshacer_salida():
-    # validamos si la lista de salidas está vacia
-    if not salidas:
-        print("No hay salidas registradas para deshacer.")
-        return
-
-    # en caso no lo esté, creamos una variable con el ultimo en entrar
-    salida = salidas.pop()
-
-    # print de confirmación
-    print("\nSe deshizo la última salida registrada:")
-    # con esta función mostramos los datos de la salida 
-    mostrar_salida(salida)
-
-# esta función imprime todas la salidas
-def mostrar_salidas():
-# se va a la lista de salidas 
-# en caso la lista esté vacia imprime No hay salidas registradas.
-    if not salidas:
-        print("No hay salidas registradas.")
-        return
-
-    print("\n========== SALIDAS REGISTRADAS ==========")
-
-    # en caso la lista de salidas no esté vacia recorre la lista de todas la salidas e imprime sus datos
-    for salida in salidas:
-        mostrar_salida(salida)
-        print("----------------------------------------")
-
-    print(f"Total de salidas registradas: {len(salidas)}")
-    print(f"Última salida registrada: {salidas[-1]['codigo']}")
-
-
-# esta función imprime el último bus en entrar a la lista salidas
-def consultar_cima():
-# se va a la lista de salidas 
-# en caso la lista esté vacia imprime La pila de salidas está vacía.
-    if not salidas:
-        print("La pila de salidas está vacía.")
-        return
-# imprime el último bus en entrar a la lista salidas
-    print("\n========== ÚLTIMA SALIDA ==========")
-    mostrar_salida(salidas[-1])
-
-
-# ============================================================
-# COLA FIFO: ATENCIÓN DE PASAJEROS
-# ============================================================
-
-def registrar_pasajero():
-    global siguiente_turno # accedemos a la variable que declaramos fuera de la función para poder aumentar el contador de turnos
-
-    # solicitamos el nombre del pasajero utilizando la función que valida que el texto no esté vacío
-    nombre = solicitar_texto("Nombre completo del pasajero: ")
-
-    # solicitamos el destino del pasajero
-    destino = solicitar_texto("Destino del pasajero: ")
-
-    # buscamos el destino ingresado dentro del árbol de destinos
-    nodo = buscar_destino(raiz, destino)
-
-    # comprobamos que el nodo sea un destino final válido
-    # si no se encontró, o si corresponde a la terminal central o a una región, no es un destino final
-    # en cualquiera de estos casos mostramos un error y salimos de la función con return
-    if not es_destino_final(nodo):
-        print("Error: el destino no existe o no es un destino final.")
-        return
-
-    # creamos un diccionario llamado pasajero con los datos que necesitamos registrar
-    pasajero = {
-        "turno": f"P{siguiente_turno:03d}", # creamos un turno con una P y un número de tres dígitos, por ejemplo P001
-        "nombre": nombre, # guardamos el nombre del pasajero
-        "destino": nodo.nombre # guardamos el nombre del destino encontrado en el árbol
-    }
-
-    # agregamos el pasajero al final de la cola para respetar el principio FIFO
-    # el primero que llega será el primero en ser atendido
-    pasajeros.append(pasajero)
-
-    # aumentamos el contador para que el siguiente pasajero reciba un turno diferente
-    siguiente_turno += 1
-
-    # mostramos un mensaje de confirmación con el turno asignado al pasajero
-    print(f"Pasajero registrado correctamente. Turno: {pasajero['turno']}")
-
-
-def mostrar_pasajeros():
-    # comprobamos si la cola está vacía
-    # si no hay pasajeros, mostramos un mensaje y salimos de la función
-    if not pasajeros:
-        print("No hay pasajeros en espera.")
-        return
-
-    # mostramos el encabezado de la sección de pasajeros en espera
-    print("\n========== PASAJEROS EN ESPERA ==========")
-
-    # recorremos la cola con un for para obtener los datos de cada pasajero
-    for pasajero in pasajeros:
-        # mostramos el turno, el nombre y el destino de cada pasajero
-        print(
-            f"{pasajero['turno']} | "
-            f"{pasajero['nombre']} | "
-            f"{pasajero['destino']}"
-        )
-
-    # utilizamos len() para contar cuántos pasajeros hay actualmente en la cola
-    print(f"Total de pasajeros en espera: {len(pasajeros)}")
-
-
-def atender_pasajero():
-    # comprobamos si la cola está vacía antes de intentar retirar un pasajero
-    # esto evita errores al utilizar popleft() sin elementos
-    if not pasajeros:
-        print("No hay pasajeros en espera para atender.")
-        return
-
-    # retiramos al primer pasajero de la cola y guardamos sus datos en la variable pasajero
-    # popleft() elimina el elemento que se encuentra al principio de la cola
-    # esto respeta FIFO: el primero en llegar es el primero en ser atendido
-    pasajero = pasajeros.popleft()
-
-    # mostramos el encabezado de la atención
-    print("\n========== PASAJERO ATENDIDO ==========")
-
-    # mostramos los datos del pasajero que acaba de ser atendido
-    print(f"Turno: {pasajero['turno']}")
-    print(f"Nombre: {pasajero['nombre']}")
-    print(f"Destino: {pasajero['destino']}")
-
-    # mostramos cuántos pasajeros quedan esperando después de atender al pasajero
-    print(f"Total en espera: {len(pasajeros)}")
-
-
-def consultar_pasajeros_por_destino():
-    # solicitamos el destino que queremos consultar
-    destino = solicitar_texto("Destino que desea consultar: ")
-
-    # buscamos el destino ingresado dentro del árbol
-    nodo = buscar_destino(raiz, destino)
-
-    # si el destino no existe o corresponde a la terminal central o a una región
-    # mostramos un mensaje de error y salimos de la función
-    if not es_destino_final(nodo):
-        print("Error: el destino no existe o no es un destino final.")
-        return
-
-    # utilizamos sum() para contar los pasajeros cuyo destino coincide con el consultado
-    # la expresión genera un 1 por cada pasajero que cumple la condición y un 0 para los demás
-    # casefold() permite comparar los nombres sin distinguir entre mayúsculas y minúsculas
-    cantidad = sum(
-        1 for pasajero in pasajeros
-        if pasajero["destino"].casefold() == nodo.nombre.casefold()
-    )
-
-    # mostramos la cantidad de pasajeros que esperan viajar al destino seleccionado
-    print(f"Pasajeros esperando hacia {nodo.nombre}: {cantidad}")
-
-
-# ============================================================
-# ÁRBOL: RECORRIDO, BÚSQUEDA Y AGREGAR DESTINOS
-# ============================================================
-
-def mostrar_arbol(nodo, nivel=0):
-    # mostramos el nombre del nodo actual
-    # multiplicamos los espacios por el nivel para representar visualmente la jerarquía
-    # el nodo raíz comienza en el nivel 0 y sus hijos se muestran con mayor indentación
-    print("    " * nivel + "- " + nodo.nombre)
-
-    # recorremos la lista de hijos del nodo actual
-    for hijo in nodo.hijos:
-        # llamamos nuevamente a la función para mostrar cada hijo
-        # aumentamos el nivel en 1 para indicar que está un nivel más abajo en el árbol
-        mostrar_arbol(hijo, nivel + 1)
-
-
-def buscar_destino(nodo, nombre):
-    # comparamos el nombre del nodo actual con el nombre que estamos buscando
-    # usamos strip() para eliminar espacios al principio y al final
-    # usamos casefold() para comparar los nombres sin distinguir entre mayúsculas y minúsculas
-    if nodo.nombre.casefold() == nombre.strip().casefold():
-        # si los nombres coinciden, devolvemos el nodo encontrado
+import builtins
+import contextlib
+import io
+
+ESTUDIANTES = ["Stanley", "Ortiz", "Ken"]
+
+
+# A. Cola FIFO de solicitudes
+class ColaSolicitudes:
+    def __init__(self):
+        self.elementos = []
+
+    def esta_vacia(self):
+        return len(self.elementos) == 0
+
+    def encolar(self, codigo, cliente):
+        # Agrega la solicitud al final de la cola
+        self.elementos.append({"codigo": codigo, "cliente": cliente})
+
+    def atender(self):
+        # Retira la solicitud más antigua (None si está vacía)
+        if self.esta_vacia():
+            return None
+        return self.elementos.pop(0)
+
+    def existe(self, codigo):
+        return any(s["codigo"] == codigo for s in self.elementos)
+
+    def pendientes(self):
+        return list(self.elementos)
+
+
+# B. Pila LIFO de despachos
+class PilaDespachos:
+    def __init__(self):
+        self.elementos = []
+
+    def esta_vacia(self):
+        return len(self.elementos) == 0
+
+    def apilar(self, codigo_operacion, codigo_producto):
+        # Agrega el despacho en la cima
+        self.elementos.append({"operacion": codigo_operacion,
+                               "producto": codigo_producto})
+
+    def desapilar(self):
+        # Retira el último despacho (None si está vacía)
+        if self.esta_vacia():
+            return None
+        return self.elementos.pop()
+
+    def cima(self):
+        return None if self.esta_vacia() else self.elementos[-1]
+
+    def existe(self, codigo_operacion):
+        return any(d["operacion"] == codigo_operacion for d in self.elementos)
+
+    def consultar(self):
+        # Devuelve los despachos de la cima a la base
+        return list(reversed(self.elementos))
+
+
+# C. Árbol binario de búsqueda de productos
+class Nodo:
+    def __init__(self, codigo):
+        self.codigo = codigo
+        self.izquierdo = None
+        self.derecho = None
+
+
+class ArbolProductos:
+    def __init__(self):
+        self.raiz = None
+
+    def insertar(self, codigo):
+        # Inserta el código; False si ya existe
+        if self.raiz is None:
+            self.raiz = Nodo(codigo)
+            return True
+        actual = self.raiz
+        while True:
+            if codigo == actual.codigo:
+                return False
+            if codigo < actual.codigo:
+                if actual.izquierdo is None:
+                    actual.izquierdo = Nodo(codigo)
+                    return True
+                actual = actual.izquierdo
+            else:
+                if actual.derecho is None:
+                    actual.derecho = Nodo(codigo)
+                    return True
+                actual = actual.derecho
+
+    def buscar(self, codigo):
+        # Devuelve si existe y los nodos visitados
+        camino = []
+        actual = self.raiz
+        while actual is not None:
+            camino.append(actual.codigo)
+            if codigo == actual.codigo:
+                return True, camino
+            actual = actual.izquierdo if codigo < actual.codigo else actual.derecho
+        return False, camino
+
+    def inorden(self):
+        resultado = []
+        self._inorden(self.raiz, resultado)
+        return resultado
+
+    def _inorden(self, nodo, resultado):
+        if nodo is not None:
+            self._inorden(nodo.izquierdo, resultado)
+            resultado.append(nodo.codigo)
+            self._inorden(nodo.derecho, resultado)
+
+    def eliminar(self, codigo):
+        # Elimina el código; False si no existía
+        existe, _ = self.buscar(codigo)
+        if not existe:
+            return False
+        self.raiz = self._eliminar(self.raiz, codigo)
+        return True
+
+    def _eliminar(self, nodo, codigo):
+        if nodo is None:
+            return None
+        if codigo < nodo.codigo:
+            nodo.izquierdo = self._eliminar(nodo.izquierdo, codigo)
+        elif codigo > nodo.codigo:
+            nodo.derecho = self._eliminar(nodo.derecho, codigo)
+        else:
+            # Hoja o un solo hijo: se reemplaza por su hijo
+            if nodo.izquierdo is None:
+                return nodo.derecho
+            if nodo.derecho is None:
+                return nodo.izquierdo
+            # Dos hijos: se reemplaza por el sucesor inorden
+            sucesor = nodo.derecho
+            while sucesor.izquierdo is not None:
+                sucesor = sucesor.izquierdo
+            nodo.codigo = sucesor.codigo
+            nodo.derecho = self._eliminar(nodo.derecho, sucesor.codigo)
         return nodo
 
-    # recorremos todos los hijos del nodo actual para buscar el destino
-    for hijo in nodo.hijos:
-        # llamamos nuevamente a la función para buscar dentro de cada hijo
-        # esto permite explorar también los niveles inferiores del árbol
-        resultado = buscar_destino(hijo, nombre)
+    def dibujar(self):
+        # Dibuja el árbol en texto (raíz a la izquierda)
+        lineas = []
+        self._dibujar(self.raiz, 0, lineas)
+        return "\n".join(lineas) if lineas else "(árbol vacío)"
 
-        # si el resultado no es None, significa que encontramos el destino
-        # devolvemos el nodo encontrado sin continuar buscando en los demás hijos
-        if resultado is not None:
-            return resultado
-
-    # si terminamos de revisar todos los hijos y no encontramos el destino
-    # devolvemos None para indicar que no existe en el árbol
-    return None
+    def _dibujar(self, nodo, nivel, lineas):
+        if nodo is not None:
+            self._dibujar(nodo.derecho, nivel + 1, lineas)
+            lineas.append("      " * nivel + str(nodo.codigo))
+            self._dibujar(nodo.izquierdo, nivel + 1, lineas)
 
 
-def buscar_destino_menu():
-    # solicitamos el nombre del destino que el usuario desea buscar
-    nombre = solicitar_texto("Nombre del destino que desea buscar: ")
-
-    # llamamos a buscar_destino() desde la raíz para revisar todo el árbol
-    nodo = buscar_destino(raiz, nombre)
-
-    # si el resultado es None, significa que el destino no existe
-    if nodo is None:
-        print(f"El destino '{nombre}' no existe.")
-
-    # comprobamos si el nodo encontrado es la raíz o una región directamente debajo de ella
-    # estos nodos representan la terminal o regiones, no destinos finales
-    elif nodo is raiz or nodo in raiz.hijos:
-        print("El nombre corresponde a la terminal o a una región, no a un destino final.")
-
-    # si no se cumple ninguna de las condiciones anteriores, encontramos un destino final
-    else:
-        print(f"Destino encontrado: {nodo.nombre}")
+# Datos iniciales obligatorios
+def cargar_datos_iniciales(cola, pila, arbol):
+    for i, codigo in enumerate(["P001", "P002", "P003"]):
+        cola.encolar(codigo, ESTUDIANTES[i % len(ESTUDIANTES)])
+    for operacion, producto in [("D001", 50), ("D002", 70), ("D003", 30)]:
+        pila.apilar(operacion, producto)
+    for codigo in [50, 30, 70, 20, 40, 60, 80]:
+        arbol.insertar(codigo)
 
 
-def agregar_destino():
-    # solicitamos el nombre de la región donde queremos agregar el nuevo destino
-    region = solicitar_texto("Nombre de la región padre: ")
-
-    # buscamos la región ingresada dentro del árbol
-    nodo_region = buscar_destino(raiz, region)
-
-    # comprobamos que el nodo sea una de las regiones, es decir, un hijo directo de la raíz
-    # no permitimos usar la terminal central como padre, porque el nuevo nodo quedaría como región y no como destino
-    # si no existe o no es una región válida, mostramos un error y salimos de la función
-    if nodo_region not in raiz.hijos:
-        print("Error: la región indicada no existe o no es una región.")
-        return
-
-    # solicitamos el nombre del nuevo destino
-    nombre = solicitar_texto("Nombre del nuevo destino: ")
-
-    # buscamos el nombre en todo el árbol para evitar duplicar destinos, regiones o la terminal
-    if buscar_destino(raiz, nombre) is not None:
-        print("Error: ya existe un destino, región o nodo con ese nombre.")
-        return
-
-    # creamos un nuevo nodo con el nombre del destino ingresado
-    nuevo_destino = NodoDestino(nombre)
-
-    # agregamos el nuevo nodo a la lista de hijos de la región seleccionada
-    # de esta manera, el destino queda ubicado en la jerarquía correspondiente
-    nodo_region.hijos.append(nuevo_destino)
-
-    # mostramos un mensaje para confirmar que el destino fue agregado correctamente
-    print(f"Destino '{nombre}' agregado a '{nodo_region.nombre}'.")
-
-
-# ============================================================
-# MENÚ PRINCIPAL
-# ============================================================
-
-def mostrar_menu():
-    print("""
-            TERMINAL DE BUSES
-========================================
-PILA LIFO - SALIDAS
-1. Registrar salida de bus
-2. Deshacer última salida
-3. Mostrar salidas registradas
-4. Consultar cima de la pila
-
-COLA FIFO - PASAJEROS
-5. Registrar pasajero
-6. Mostrar pasajeros en espera
-7. Atender siguiente pasajero
-8. Consultar pasajeros por destino
-
-ÁRBOL DE DESTINOS
-9. Mostrar árbol de destinos
-10. Buscar destino
-11. Agregar destino a una región
-
-0. Salir
-========================================
-""")
-
-
-def main():
-    # usamos un ciclo while True para mantener el menú funcionando continuamente
-    # el ciclo solamente terminará cuando el usuario seleccione la opción de salir
+# Validación de entradas
+def leer_texto(mensaje):
     while True:
+        valor = input(mensaje).strip()
+        if valor:
+            return valor
+        print("  [!] El valor no puede estar vacío.")
 
-        # llamamos a la función que muestra todas las opciones disponibles del sistema
-        mostrar_menu()
 
-        # usamos try para intentar convertir la opción ingresada por el usuario a un número entero
+def leer_codigo(mensaje, prefijo):
+    # Lee un código tipo P004 o D004
+    while True:
+        valor = input(mensaje).strip().upper()
+        if len(valor) > 1 and valor[0] == prefijo and valor[1:].isdigit():
+            return valor
+        print(
+            f"  [!] Formato inválido. Use '{prefijo}' seguido de números (ej. {prefijo}004).")
+
+
+def leer_entero(mensaje):
+    while True:
+        valor = input(mensaje).strip()
         try:
-            opcion = int(input("Elija una opción: "))
-
-        # si el usuario ingresa texto u otro valor que no se puede convertir a entero
-        # se produce un ValueError y mostramos un mensaje indicando que debe ingresar un número
+            numero = int(valor)
+            if numero > 0:
+                return numero
+            print("  [!] El código debe ser un número entero positivo.")
         except ValueError:
-            print("Por favor, ingrese un número válido.")
-
-            # continue hace que el ciclo vuelva al inicio
-            # así mostramos nuevamente el menú sin ejecutar ninguna opción
-            continue
-
-        # usamos match para evaluar el número ingresado por el usuario
-        # cada case representa una opción del menú y ejecuta la función correspondiente
-        match opcion:
-
-            case 1:
-                # llamamos a la función que registra una nueva salida de bus en la pila
-                registrar_salida()
-
-            case 2:
-                # llamamos a la función que elimina la última salida registrada
-                deshacer_salida()
-
-            case 3:
-                # llamamos a la función que muestra todas las salidas registradas
-                mostrar_salidas()
-
-            case 4:
-                # llamamos a la función que consulta la cima de la pila
-                # permite ver la última salida sin eliminarla
-                consultar_cima()
-
-            case 5:
-                # llamamos a la función que registra un pasajero al final de la cola FIFO
-                registrar_pasajero()
-
-            case 6:
-                # llamamos a la función que muestra los pasajeros que están esperando
-                mostrar_pasajeros()
-
-            case 7:
-                # llamamos a la función que atiende al primer pasajero de la cola
-                atender_pasajero()
-
-            case 8:
-                # llamamos a la función que consulta cuántos pasajeros esperan por un destino específico
-                consultar_pasajeros_por_destino()
-
-            case 9:
-                # llamamos a la función que muestra el árbol completo de destinos
-                # pasamos raiz como argumento para comenzar el recorrido desde el nodo principal
-                mostrar_arbol(raiz)
-
-            case 10:
-                # llamamos a la función que solicita un destino y busca si existe en el árbol
-                buscar_destino_menu()
-
-            case 11:
-                # llamamos a la función que agrega un nuevo destino a una región existente
-                agregar_destino()
-
-            case 0:
-                # mostramos un mensaje de despedida cuando el usuario decide salir
-                print("Gracias por utilizar el sistema de la terminal de buses.")
-
-                # break termina el ciclo while y finaliza la ejecución del menú
-                break
-
-            case _:
-                # el guion bajo (_) funciona como el caso predeterminado
-                # se ejecuta cuando el número ingresado no coincide con ninguna opción anterior
-                print("Opción no válida. Intente nuevamente.")
-
-        # si la opción no fue salir, solicitamos que el usuario presione Enter antes de continuar
-        # esto permite leer los resultados de la operación antes de que aparezca nuevamente el menú
-        if opcion != 0:
-            input("\nPresione Enter para continuar...")
+            print("  [!] Debe ingresar un número entero.")
 
 
-# esta condición comprueba si el archivo se está ejecutando directamente
-# si es así, llama a main() para iniciar el programa
-# también permite importar este archivo desde otro módulo sin ejecutar automáticamente el menú
+# Menús
+def menu_cola(cola):
+    while True:
+        print("\n--- A. Solicitudes (Cola FIFO) ---")
+        print("1. Registrar solicitud")
+        print("2. Atender siguiente solicitud")
+        print("3. Mostrar solicitudes pendientes")
+        print("0. Volver")
+        opcion = input("Opción: ").strip()
+        if opcion == "1":
+            codigo = leer_codigo("Código de solicitud (ej. P004): ", "P")
+            if cola.existe(codigo):
+                print(f"  [!] La solicitud {codigo} ya está en la cola.")
+                continue
+            cliente = leer_texto("Nombre del cliente: ")
+            cola.encolar(codigo, cliente)
+            print(f"  Solicitud {codigo} agregada al final de la cola.")
+        elif opcion == "2":
+            atendida = cola.atender()
+            if atendida is None:
+                print("  [!] No existen solicitudes para atender.")
+            else:
+                print(
+                    f"  Atendida: {atendida['codigo']} - {atendida['cliente']}")
+        elif opcion == "3":
+            pendientes = cola.pendientes()
+            if not pendientes:
+                print("  No hay solicitudes pendientes.")
+            else:
+                print("  Pendientes (primero a último):")
+                for pos, s in enumerate(pendientes, 1):
+                    print(f"   {pos}. {s['codigo']} - {s['cliente']}")
+        elif opcion == "0":
+            return
+        else:
+            print("  [!] Opción inválida.")
+
+
+def menu_pila(pila):
+    while True:
+        print("\n--- B. Despachos (Pila LIFO) ---")
+        print("1. Registrar despacho")
+        print("2. Consultar despachos registrados")
+        print("3. Retirar último despacho (desapilar)")
+        print("0. Volver")
+        opcion = input("Opción: ").strip()
+        if opcion == "1":
+            operacion = leer_codigo("Código de operación (ej. D004): ", "D")
+            if pila.existe(operacion):
+                print(f"  [!] El despacho {operacion} ya está registrado.")
+                continue
+            producto = leer_entero("Código de producto: ")
+            pila.apilar(operacion, producto)
+            print(f"  Despacho {operacion} apilado en la cima.")
+        elif opcion == "2":
+            despachos = pila.consultar()
+            if not despachos:
+                print("  No hay despachos registrados.")
+            else:
+                print("  Despachos (cima a base):")
+                for d in despachos:
+                    print(f"   {d['operacion']} - producto {d['producto']}")
+        elif opcion == "3":
+            retirado = pila.desapilar()
+            if retirado is None:
+                print("  [!] La pila está vacía: no hay despachos para retirar.")
+            else:
+                print(f"  Retirado (corrección de registro): {retirado['operacion']}"
+                      f" - producto {retirado['producto']}")
+        elif opcion == "0":
+            return
+        else:
+            print("  [!] Opción inválida.")
+
+
+def menu_arbol(arbol):
+    while True:
+        print("\n--- C. Productos (Árbol binario de búsqueda) ---")
+        print("1. Insertar código")
+        print("2. Buscar código")
+        print("3. Mostrar recorrido inorden")
+        print("4. Eliminar código")
+        print("5. Dibujar árbol")
+        print("0. Volver")
+        opcion = input("Opción: ").strip()
+        if opcion == "1":
+            codigo = leer_entero("Código a insertar: ")
+            if arbol.insertar(codigo):
+                print(f"  Código {codigo} insertado.")
+            else:
+                print(f"  [!] El código {codigo} ya existe.")
+        elif opcion == "2":
+            codigo = leer_entero("Código a buscar: ")
+            existe, camino = arbol.buscar(codigo)
+            estado = "EXISTE" if existe else "NO existe"
+            print(f"  El código {codigo} {estado}. Nodos visitados: {camino}")
+        elif opcion == "3":
+            codigos = arbol.inorden()
+            print(f"  Inorden: {codigos if codigos else '(árbol vacío)'}")
+        elif opcion == "4":
+            codigo = leer_entero("Código a eliminar: ")
+            if arbol.eliminar(codigo):
+                print(
+                    f"  Código {codigo} eliminado. Inorden: {arbol.inorden()}")
+            else:
+                print(f"  [!] El código {codigo} no existe en el árbol.")
+        elif opcion == "5":
+            print(arbol.dibujar())
+        elif opcion == "0":
+            return
+        else:
+            print("  [!] Opción inválida.")
+
+
+def resumen(cola, pila, arbol):
+    # Muestra el estado de las tres estructuras
+    print("\n=== Estado general del sistema ===")
+    print("Cola (primero a último):", [s["codigo"] for s in cola.pendientes()])
+    print("Pila (cima a base):     ", [
+          d["operacion"] for d in pila.consultar()])
+    print("Árbol (inorden):        ", arbol.inorden())
+
+
+def despachar(cola, pila, arbol, producto):
+    # Atiende la siguiente solicitud y apila su despacho
+    # Devuelve (solicitud, operacion) o (None, None) si no se pudo
+    existe, _ = arbol.buscar(producto)
+    if cola.esta_vacia() or not existe:
+        return None, None
+    solicitud = cola.atender()
+    operacion = f"D{len(pila.elementos) + 1:03d}"
+    while pila.existe(operacion):
+        operacion = f"D{int(operacion[1:]) + 1:03d}"
+    pila.apilar(operacion, producto)
+    return solicitud, operacion
+
+
+def atender_y_despachar(cola, pila, arbol):
+    # Atiende una solicitud, valida el producto y registra el despacho
+    if cola.esta_vacia():
+        print("  [!] No existen solicitudes para atender.")
+        return
+    producto = leer_entero("Código de producto solicitado: ")
+    solicitud, operacion = despachar(cola, pila, arbol, producto)
+    if solicitud is None:
+        print(
+            f"  [!] El producto {producto} no existe. La solicitud sigue en cola.")
+        return
+    print(f"  Solicitud {solicitud['codigo']} ({solicitud['cliente']}) atendida;"
+          f" despacho {operacion} registrado para el producto {producto}.")
+
+
+# Pruebas automáticas
+def con_entradas(valores, funcion, *args):
+    # Ejecuta una función de lectura simulando lo que escribe el usuario
+    entradas = iter(valores)
+    original = builtins.input
+    builtins.input = lambda mensaje="": next(entradas)
+    try:
+        with contextlib.redirect_stdout(io.StringIO()):
+            return funcion(*args)
+    finally:
+        builtins.input = original
+
+
+def ejecutar_pruebas():
+    print("\n=== Pruebas automáticas ===")
+    resultados = []
+
+    def verificar(descripcion, condicion):
+        resultados.append(condicion)
+        estado = "OK   " if condicion else "FALLO"
+        print(f"  [{estado}] {descripcion}")
+
+    # A. Cola FIFO (estructura nueva, no afecta los datos del menú)
+    print("\nA. Cola FIFO de solicitudes")
+    cola = ColaSolicitudes()
+    verificar("Cola nueva está vacía", cola.esta_vacia())
+    verificar("Atender cola vacía devuelve None (control)",
+              cola.atender() is None)
+    for i, codigo in enumerate(["P001", "P002", "P003"]):
+        cola.encolar(codigo, ESTUDIANTES[i])
+    verificar("Registra solicitudes con código y nombre de estudiante",
+              cola.pendientes()[0] == {"codigo": "P001", "cliente": "Stanley"})
+    cola.encolar("P004", "Ortiz")
+    verificar("Nueva solicitud P004 queda al final de la cola",
+              cola.pendientes()[-1]["codigo"] == "P004")
+    verificar("Detecta código de solicitud repetido", cola.existe("P002"))
+    orden = [cola.atender()["codigo"] for _ in range(4)]
+    verificar(f"Atiende en orden de llegada {orden}",
+              orden == ["P001", "P002", "P003", "P004"])
+    verificar("Sin pendientes tras atender todo", cola.pendientes() == [])
+
+    # B. Pila LIFO
+    print("\nB. Pila LIFO de despachos")
+    pila = PilaDespachos()
+    verificar("Desapilar pila vacía devuelve None (control)",
+              pila.desapilar() is None)
+    for operacion, producto in [("D001", 50), ("D002", 70), ("D003", 30)]:
+        pila.apilar(operacion, producto)
+    verificar("Registra despacho con operación y producto",
+              pila.cima() == {"operacion": "D003", "producto": 30})
+    consulta = [d["operacion"] for d in pila.consultar()]
+    verificar(f"Consulta de cima a base {consulta}",
+              consulta == ["D003", "D002", "D001"])
+    verificar("Desapila primero el último registrado (D003)",
+              pila.desapilar()["operacion"] == "D003")
+    verificar("Luego desapila D002", pila.desapilar()["operacion"] == "D002")
+    pila.desapilar()
+    verificar("Pila queda vacía y desapilar devuelve None",
+              pila.esta_vacia() and pila.desapilar() is None)
+
+    # C. Árbol binario de búsqueda
+    print("\nC. Árbol binario de búsqueda de productos")
+    arbol = ArbolProductos()
+    for codigo in [50, 30, 70, 20, 40, 60, 80]:
+        arbol.insertar(codigo)
+    verificar("Raíz del árbol es 50", arbol.raiz.codigo == 50)
+    verificar("Menores a la izquierda y mayores a la derecha",
+              arbol.raiz.izquierdo.codigo == 30 and arbol.raiz.derecho.codigo == 70)
+    verificar("Inorden sale ordenado [20, 30, 40, 50, 60, 70, 80]",
+              arbol.inorden() == [20, 30, 40, 50, 60, 70, 80])
+    verificar("No permite insertar código duplicado (50)",
+              not arbol.insertar(50))
+    existe, camino = arbol.buscar(60)
+    verificar(f"Busca 60: existe, camino {camino}",
+              existe and camino == [50, 70, 60])
+    existe, _ = arbol.buscar(99)
+    verificar("Busca 99: no existe", not existe)
+    arbol.eliminar(20)
+    verificar("Elimina hoja 20, inorden sigue ordenado",
+              arbol.inorden() == [30, 40, 50, 60, 70, 80])
+    arbol.eliminar(30)
+    verificar("Elimina 30 (un hijo), 40 sube a su lugar",
+              arbol.raiz.izquierdo.codigo == 40)
+    arbol.eliminar(50)
+    verificar("Elimina raíz 50 (dos hijos), la reemplaza el sucesor 60",
+              arbol.raiz.codigo == 60 and arbol.inorden() == [40, 60, 70, 80])
+    verificar("Eliminar código inexistente devuelve False",
+              not arbol.eliminar(99))
+
+    # D. Integración y validaciones
+    print("\nD. Integración y validaciones")
+    cola, pila, arbol = ColaSolicitudes(), PilaDespachos(), ArbolProductos()
+    cargar_datos_iniciales(cola, pila, arbol)
+    solicitud, _ = despachar(cola, pila, arbol, 99)
+    verificar("Producto inexistente: la solicitud sigue en cola y no se apila",
+              solicitud is None and len(cola.pendientes()) == 3
+              and len(pila.consultar()) == 3)
+    solicitud, operacion = despachar(cola, pila, arbol, 60)
+    verificar(f"Producto 60: atiende {solicitud['codigo']} y apila {operacion}",
+              solicitud["codigo"] == "P001"
+              and pila.cima() == {"operacion": "D004", "producto": 60})
+    verificar("El árbol no cambia al despachar (estructuras independientes)",
+              arbol.inorden() == [20, 30, 40, 50, 60, 70, 80])
+    pila.desapilar()
+    verificar("Desapilar no altera la cola ni el árbol",
+              len(cola.pendientes()) == 2 and len(arbol.inorden()) == 7)
+    despachar(cola, pila, arbol, 20)
+    despachar(cola, pila, arbol, 80)
+    solicitud, _ = despachar(cola, pila, arbol, 50)
+    verificar("Cola vacía: no se registra despacho",
+              solicitud is None and pila.cima()["producto"] == 80)
+    verificar("Rechaza código vacío o mal formado ('', 'X1', 'P') y acepta 'p004'",
+              con_entradas(["", "X1", "P", "p004"], leer_codigo, "> ", "P") == "P004")
+    verificar("Rechaza 'abc', '-3' y '0' y acepta 25",
+              con_entradas(["abc", "-3", "0", "25"], leer_entero, "> ") == 25)
+    verificar("Rechaza nombre vacío y acepta 'Ken'",
+              con_entradas(["", "   ", "Ken"], leer_texto, "> ") == "Ken")
+
+    aprobadas = sum(resultados)
+    print(f"\n  Resultado: {aprobadas}/{len(resultados)} pruebas aprobadas.")
+
+
+def menu_principal():
+    cola, pila, arbol = ColaSolicitudes(), PilaDespachos(), ArbolProductos()
+    cargar_datos_iniciales(cola, pila, arbol)
+    while True:
+        print("\n===== Distribuidora 'Las naranjas' =====")
+        print("1. Solicitudes (Cola FIFO)")
+        print("2. Despachos (Pila LIFO)")
+        print("3. Productos (Árbol binario de búsqueda)")
+        print("4. Atender solicitud y registrar despacho (integrado)")
+        print("5. Ver estado general")
+        print("6. Ejecutar pruebas automáticas")
+        print("0. Salir")
+        opcion = input("Seleccione una opción: ").strip()
+        if opcion == "1":
+            menu_cola(cola)
+        elif opcion == "2":
+            menu_pila(pila)
+        elif opcion == "3":
+            menu_arbol(arbol)
+        elif opcion == "4":
+            atender_y_despachar(cola, pila, arbol)
+        elif opcion == "5":
+            resumen(cola, pila, arbol)
+        elif opcion == "6":
+            ejecutar_pruebas()
+        elif opcion == "0":
+            print("Programa finalizado.")
+            return
+        else:
+            print("  [!] Opción inválida. Ingrese un número del 0 al 6.")
+
+
 if __name__ == "__main__":
-    main()
-
-# ============================================================
-# MEJORAS EMPRESARIALES
-# ============================================================
-
-# MEJORA 1: CONSULTA DE LA ÚLTIMA SALIDA SIN MODIFICAR LA PILA
-# necesidad que resuelve: el personal de la terminal necesita conocer la última salida registrada
-# para verificar información o atender consultas, sin correr el riesgo de eliminar un registro válido
-# cambio realizado: creamos la función consultar_cima(), que usa salidas[-1] para leer la cima de la pila
-# sin retirarla, a diferencia de pop(), que sí la eliminaría
-
-# MEJORA 2: OPTIMIZACIÓN DE LA COLA DE PASAJEROS CON collections.deque
-# necesidad que resuelve: los pasajeros deben atenderse en orden de llegada, y con una lista normal
-# pop(0) es lento cuando hay muchos pasajeros, porque desplaza todos los elementos restantes (O(n))
-# cambio realizado: implementamos la cola con deque(), usando append() para registrar pasajeros al final
-# y popleft() para atender al primero, ambas operaciones en O(1) y respetando el orden FIFO
+    try:
+        menu_principal()
+    except (KeyboardInterrupt, EOFError):
+        print("\nPrograma finalizado.")
