@@ -1,24 +1,17 @@
-import sys
-import time
-
-sys.setrecursionlimit(2000)
-
-def quicksort_first_pivot(arr):
-    if len(arr) <= 1:
-        return arr
+def descending_selection_sort(grades):
+    n = len(grades)
     
-    pivot = arr[0]
-    
-    less = [x for x in arr if x < pivot]
-    equal = [x for x in arr if x == pivot]
-    greater = [x for x in arr if x > pivot]
-    
-    return quicksort_first_pivot(less) + equal + quicksort_first_pivot(greater)
+    for i in range(n):
+        max_idx = i
+        
+        for j in range(i + 1, n):
+            if grades[j] > grades[max_idx]:
+                max_idx = j
+                
+        grades[i], grades[max_idx] = grades[max_idx], grades[i]
+        
+    return grades
 
-sorted_list = list(range(1, 1001))
-
-start = time.time()
-quicksort_first_pivot(sorted_list)
-end = time.time()
-
-print(f"Tiempo QuickSort (Primer pivote / Lista ordenada): {end - start:.4f} segundos")
+scores = [7.5, 9.0, 6.2, 10.0, 5.5, 8.8]
+print(f"Calificaciones originales: {scores}")
+print(f"Calificaciones de mayor a menor: {descending_selection_sort(scores)}")
