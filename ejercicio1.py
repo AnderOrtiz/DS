@@ -1,48 +1,36 @@
-class ProcessNode:
-    def __init__(self, name):
-        self.name = name
-        self.next = None
+def sequential_search_steps(data_list, target):
+    iterations = 0
+    for i in range(len(data_list)):
+        iterations += 1
+        if data_list[i] == target:
+            return (i, iterations)
+    
+    return (-1, iterations)
 
-class OSScheduler:
-    def __init__(self):
-        self.head = None
-
-    def add_process(self, name):
-        new_process = ProcessNode(name)
-        if not self.head:
-            self.head = new_process
-            new_process.next = self.head
+def binary_search_steps(data_list, target):
+    start = 0
+    end = len(data_list) - 1
+    iterations = 0
+    
+    while start <= end:
+        iterations += 1
+        middle = (start + end) // 2
+        
+        if data_list[middle] == target:
+            return (middle, iterations)
+        elif data_list[middle] < target:
+            start = middle + 1
         else:
-            current = self.head
-            while current.next != self.head:
-                current = current.next
+            end = middle - 1
             
-            current.next = new_process
-            new_process.next = self.head
+    return (-1, iterations)
 
-    def simulate_execution(self, total_rounds):
-        if not self.head:
-            print("No hay procesos en el planificador.")
-            return
+data_1000 = list(range(1, 1001))
+number_to_find = 998 
 
-        current = self.head
-        completed_rounds = 0
+print("--- Comparativa de Rendimiento ---")
+seq_result, seq_steps = sequential_search_steps(data_1000, number_to_find)
+print(f"Secuencial -> Posición: {seq_result}, Iteraciones requeridas: {seq_steps}")
 
-        print(f"--- Iniciando planificador ({total_rounds} vueltas) ---")
-        while completed_rounds < total_rounds:
-            print(f"Ejecutando: {current.name}")
-            current = current.next
-
-            if current == self.head:
-                completed_rounds += 1
-                print(f"--> Ciclo {completed_rounds} completado\n")
-
-
-scheduler = OSScheduler()
-scheduler.add_process("Terminal")
-scheduler.add_process("Gestor de Archivos")
-scheduler.add_process("Cliente de Correo")
-scheduler.add_process("Antivirus")
-
-
-scheduler.simulate_execution(3)
+bin_result, bin_steps = binary_search_steps(data_1000, number_to_find)
+print(f"Binaria    -> Posición: {bin_result}, Iteraciones requeridas: {bin_steps}")
