@@ -1,24 +1,17 @@
-def recursive_binary_search(data_list, target, start, end):
-    if start > end:
-        return -1
+def descending_selection_sort(grades):
+    n = len(grades)
     
-    middle = (start + end) // 2
-    
-    if data_list[middle] == target:
-        return middle
-    elif data_list[middle] < target:
-        return recursive_binary_search(data_list, target, middle + 1, end)
-    else:
-        return recursive_binary_search(data_list, target, start, middle - 1)
+    for i in range(n):
+        max_idx = i
+        
+        for j in range(i + 1, n):
+            if grades[j] > grades[max_idx]:
+                max_idx = j
+                
+        grades[i], grades[max_idx] = grades[max_idx], grades[i]
+        
+    return grades
 
-
-sorted_list = [90,80,10,25,15,95]
-target = 10
-
-index = recursive_binary_search(sorted_list, target, 0, len(sorted_list) - 1)
-
-print(f"\n--- Búsqueda Recursiva ---")
-if index != -1:
-    print(f"El número {target} está en el índice {index}")
-else:
-    print(f"El número {target} no se encuentra en la lista")
+scores = [7.5, 9.0, 6.2, 10.0, 5.5, 8.8]
+print(f"Calificaciones originales: {scores}")
+print(f"Calificaciones de mayor a menor: {descending_selection_sort(scores)}")
