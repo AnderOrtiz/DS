@@ -1,3 +1,0 @@
-
-def fibonacci(cantidad):
-    pass
