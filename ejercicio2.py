@@ -1,24 +1,24 @@
-import sys
-import time
-
-sys.setrecursionlimit(2000)
-
-def quicksort_first_pivot(arr):
-    if len(arr) <= 1:
-        return arr
+def recursive_binary_search(data_list, target, start, end):
+    if start > end:
+        return -1
     
-    pivot = arr[0]
+    middle = (start + end) // 2
     
-    less = [x for x in arr if x < pivot]
-    equal = [x for x in arr if x == pivot]
-    greater = [x for x in arr if x > pivot]
-    
-    return quicksort_first_pivot(less) + equal + quicksort_first_pivot(greater)
+    if data_list[middle] == target:
+        return middle
+    elif data_list[middle] < target:
+        return recursive_binary_search(data_list, target, middle + 1, end)
+    else:
+        return recursive_binary_search(data_list, target, start, middle - 1)
 
-sorted_list = list(range(1, 1001))
 
-start = time.time()
-quicksort_first_pivot(sorted_list)
-end = time.time()
+sorted_list = [90,80,10,25,15,95]
+target = 10
 
-print(f"Tiempo QuickSort (Primer pivote / Lista ordenada): {end - start:.4f} segundos")
+index = recursive_binary_search(sorted_list, target, 0, len(sorted_list) - 1)
+
+print(f"\n--- Búsqueda Recursiva ---")
+if index != -1:
+    print(f"El número {target} está en el índice {index}")
+else:
+    print(f"El número {target} no se encuentra en la lista")
